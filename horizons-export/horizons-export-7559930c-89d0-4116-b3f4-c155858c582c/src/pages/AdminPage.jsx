@@ -26,34 +26,52 @@ const AdminPage = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const { data: orderData, error: orderError } = await supabase
-      .from('orders')
-      .select(`*, client:profiles(full_name), writer:profiles(full_name)`)
-      .order('created_at', { ascending: false });
+    try {
+      // Check if orders table exists first
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-    const { data: clientData, error: clientError } = await supabase
-      .from('profiles')
-      .select('*, users(email)')
-      .eq('is_writer', false);
+      // Fetch all profiles (both clients and writers)
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('is_active', true);
 
-    const { data: writerData, error: writerError } = await supabase
-      .from('profiles')
-      .select('*, users(email)')
-      .eq('is_writer', true);
+      if (orderError && orderError.code !== 'PGRST116') {
+        console.error('Order error:', orderError);
+        // Don't show toast on first error, just set empty data
+      }
 
-    if (orderError || clientError || writerError) {
-      toast({ variant: 'destructive', title: 'Error fetching data', description: orderError?.message || clientError?.message || writerError?.message });
-    } else {
+      if (profileError) {
+        console.error('Profile error:', profileError);
+        // Don't show toast on first error, just set empty data
+      }
+
+      // Set the data (even if empty arrays)
       setOrders(orderData || []);
-      setClients(clientData || []);
-      setWriters(writerData || []);
+      
+      // Separate clients and writers from profiles
+      const profiles = profileData || [];
+      setClients(profiles.filter(p => !p.is_writer && !p.is_admin));
+      setWriters(profiles.filter(p => p.is_writer));
+      
+    } catch (error) {
+      console.error('Unexpected error in fetchData:', error);
+      // Set empty data and stop loading
+      setOrders([]);
+      setClients([]);
+      setWriters([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
     fetchData();
-  }, [toast]);
+  }, []); // Remove toast dependency to prevent infinite loop
 
   const handleStatusChange = async (orderId, newStatus) => {
     const { error } = await supabase
@@ -80,9 +98,9 @@ const AdminPage = () => {
   const filteredOrders = useMemo(() => {
     if (!searchTerm) return orders;
     return orders.filter(order =>
-      order.topic.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.client?.full_name.toLowerCase().includes(searchTerm.toLowerCase())
+      (order.topic || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.id || '').toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.user_id || '').toString().toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [orders, searchTerm]);
 
@@ -160,7 +178,7 @@ const AdminPage = () => {
                         <div className="md:col-span-2">
                           <p className="font-semibold text-gray-800">{order.topic}</p>
                           <p className="text-xs text-gray-500">ID: {order.id}</p>
-                          <p className="text-sm text-gray-600">Client: {order.client?.full_name || 'N/A'}</p>
+                          <p className="text-sm text-gray-600">Client: {order.user_id ? `User ${order.user_id.slice(-8)}` : 'N/A'}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600 font-medium">${order.price}</p>
@@ -202,9 +220,9 @@ const AdminPage = () => {
               <CardContent>
                  <div className="space-y-2">
                     {loading ? <p>Loading clients...</p> : clients.map(client => (
-                        <div key={client.id} className="flex items-center justify-between p-3 border rounded-md">
-                            <p className="font-medium">{client.full_name}</p>
-                            <p className="text-sm text-gray-500">{client.users?.email}</p>
+                    <div key={client.id} className="flex items-center justify-between p-3 border rounded-md">
+                            <p className="font-medium">{client.first_name && client.last_name ? `${client.first_name} ${client.last_name}` : client.email || 'Unknown'}</p>
+                            <p className="text-sm text-gray-500">{client.email || 'No email'}</p>
                         </div>
                     ))}
                     {!loading && clients.length === 0 && <p className="text-center text-gray-500 py-8">No clients found.</p>}
@@ -223,8 +241,8 @@ const AdminPage = () => {
                 <div className="space-y-2">
                     {loading ? <p>Loading writers...</p> : writers.map(writer => (
                         <div key={writer.id} className="flex items-center justify-between p-3 border rounded-md">
-                            <p className="font-medium">{writer.full_name}</p>
-                            <p className="text-sm text-gray-500">{writer.users?.email}</p>
+                            <p className="font-medium">{writer.first_name && writer.last_name ? `${writer.first_name} ${writer.last_name}` : writer.email || 'Unknown'}</p>
+                            <p className="text-sm text-gray-500">{writer.email || 'No email'}</p>
                         </div>
                     ))}
                     {!loading && writers.length === 0 && <p className="text-center text-gray-500 py-8">No writers found.</p>}

@@ -1,14 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Menu, X, PenTool, User, LogOut } from 'lucide-react';
+import { Menu, X, PenTool, User, LogOut, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
+import { supabase } from '@/lib/customSupabaseClient';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const location = useLocation();
   const { user, signOut } = useAuth();
+
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+      
+      // Multiple hardcoded admin checks
+      if (user.email === 'musyokibrian@gmail.com' || 
+          user.email === 'musyokibrian047@gmail.com') {
+        setIsAdmin(true);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('user_id', user.id)
+          .maybeSingle(); // Use maybeSingle instead of single to handle missing records
+        
+        if (error) {
+          console.warn('Error checking admin status:', error);
+          setIsAdmin(false);
+        } else {
+          // If no profile exists, data will be null
+          setIsAdmin(data?.is_admin || false);
+        }
+      } catch (error) {
+        console.warn('Error checking admin status:', error);
+        setIsAdmin(false);
+      }
+    };
+    
+    checkAdminStatus();
+  }, [user]);
 
   const navigation = [
     { name: 'Home', href: '/' },
@@ -61,28 +101,51 @@ const Header = () => {
                 )}
               </Link>
             ))}
-             {user && user.email === 'admin@maestroessays.com' && (
-              <Link to="/admin/users" className={`relative px-3 py-2 text-sm font-medium transition-colors duration-200 ${
-                  location.pathname === '/admin/users'
-                    ? 'text-sky-600'
-                    : 'text-gray-700 hover:text-sky-600'
-                }`}>
-                Admin
-                {location.pathname === '/admin/users' && (
-                  <motion.div
-                    layoutId="activeTabAdmin"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-sky-400 to-blue-600"
-                    initial={false}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  />
-                )}
+            {isAdmin && (
+              <>
+                <Link to="/admin" className={`relative px-3 py-2 text-sm font-medium transition-colors duration-200 ${
+                    location.pathname === '/admin'
+                      ? 'text-sky-600'
+                      : 'text-gray-700 hover:text-sky-600'
+                  }`}>
+                  <div className="flex items-center space-x-1">
+                    <Shield className="w-4 h-4" />
+                    <span>Admin</span>
+                  </div>
+                  {location.pathname === '/admin' && (
+                    <motion.div
+                      layoutId="activeTabAdmin"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-sky-400 to-blue-600"
+                      initial={false}
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    />
+                  )}
                 </Link>
+                <Link to="/admin/users" className={`relative px-3 py-2 text-sm font-medium transition-colors duration-200 ${
+                    location.pathname === '/admin/users'
+                      ? 'text-sky-600'
+                      : 'text-gray-700 hover:text-sky-600'
+                  }`}>
+                  Users
+                  {location.pathname === '/admin/users' && (
+                    <motion.div
+                      layoutId="activeTabUsers"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-sky-400 to-blue-600"
+                      initial={false}
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    />
+                  )}
+                </Link>
+              </>
             )}
           </div>
 
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
               <>
+                <Button asChild variant="ghost">
+                  <Link to="/dashboard">Dashboard</Link>
+                </Button>
                 <Button asChild variant="ghost" size="icon">
                   <Link to="/profile">
                     <User className="h-5 w-5" />
@@ -138,17 +201,32 @@ const Header = () => {
                   {item.name}
                 </Link>
               ))}
-               {user && user.email === 'admin@maestroessays.com' && (
-                <Link to="/admin/users" onClick={() => setIsMenuOpen(false)} className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200 ${
-                      location.pathname === '/admin/users'
-                        ? 'text-sky-600 bg-sky-50'
-                        : 'text-gray-700 hover:text-sky-600 hover:bg-sky-50'
-                    }`}>Admin</Link>
+              {isAdmin && (
+                <>
+                  <Link to="/admin" onClick={() => setIsMenuOpen(false)} className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200 ${
+                        location.pathname === '/admin'
+                          ? 'text-sky-600 bg-sky-50'
+                          : 'text-gray-700 hover:text-sky-600 hover:bg-sky-50'
+                      }`}>
+                    <div className="flex items-center space-x-1">
+                      <Shield className="w-4 h-4" />
+                      <span>Admin Dashboard</span>
+                    </div>
+                  </Link>
+                  <Link to="/admin/users" onClick={() => setIsMenuOpen(false)} className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200 ${
+                        location.pathname === '/admin/users'
+                          ? 'text-sky-600 bg-sky-50'
+                          : 'text-gray-700 hover:text-sky-600 hover:bg-sky-50'
+                      }`}>
+                    Admin Users
+                  </Link>
+                </>
               )}
               <div className="border-t my-2"></div>
               {user ? (
                 <>
-                   <Link to="/profile" onClick={() => setIsMenuOpen(false)} className="px-3 py-2 text-sm font-medium rounded-lg text-gray-700 hover:text-sky-600 hover:bg-sky-50">Profile</Link>
+                  <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="px-3 py-2 text-sm font-medium rounded-lg text-gray-700 hover:text-sky-600 hover:bg-sky-50">Dashboard</Link>
+                  <Link to="/profile" onClick={() => setIsMenuOpen(false)} className="px-3 py-2 text-sm font-medium rounded-lg text-gray-700 hover:text-sky-600 hover:bg-sky-50">Profile</Link>
                   <Button onClick={() => { handleSignOut(); setIsMenuOpen(false); }} className="mt-2 text-white">Sign Out</Button>
                 </>
               ) : (

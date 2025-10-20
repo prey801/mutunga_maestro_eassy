@@ -6,7 +6,22 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import HomePage from '@/pages/HomePage';
 import OrderPage from '@/pages/OrderPage';
-import AdminPage from '@/pages/AdminPage';
+import SimpleOrderPage from '@/pages/SimpleOrderPage';
+import PaymentPage from '@/pages/PaymentPage';
+import DashboardPage from '@/pages/DashboardPage';
+import DynamicAdminPage from '@/pages/DynamicAdminPage';
+import AdminUsersPage from '@/pages/AdminUsersPage';
+import AdminTestPage from '@/pages/AdminTestPage';
+import SimpleAdminDebug from '@/pages/SimpleAdminDebug';
+import BasicAdminPage from '@/pages/BasicAdminPage';
+import RealDataAdminPage from '@/pages/RealDataAdminPage';
+import TestPage from '@/pages/TestPage';
+import PayPalTest from '@/components/PayPalTest';
+import PaymentPageSimple from '@/pages/PaymentPageSimple';
+import PayPalTestStandalone from '@/pages/PayPalTestStandalone';
+import EnvTest from '@/pages/EnvTest';
+import PayPalImprovedTest from '@/pages/PayPalImprovedTest';
+import PayPalTutorialWrapper from '@/pages/PayPalTutorialWrapper';
 import ChatPage from '@/pages/ChatPage';
 import ServicesPage from '@/pages/ServicesPage';
 import SamplesPage from '@/pages/SamplesPage';
@@ -16,10 +31,10 @@ import LoginPage from '@/pages/LoginPage';
 import SignUpPage from '@/pages/SignUpPage';
 import ProfilePage from '@/pages/ProfilePage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
-import AdminUsersPage from '@/pages/AdminUsersPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import UpdatePasswordPage from '@/pages/UpdatePasswordPage';
 import ThankYouPage from '@/pages/ThankYouPage';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 function App() {
   return (
@@ -32,14 +47,28 @@ function App() {
           <meta property="og:description" content="Get high-quality academic writing services from expert writers. Custom essays, research papers, and assignments delivered on time with guaranteed quality." />
         </Helmet>
         
+        <Routes>
+          {/* Standalone test routes without header/footer */}
+          <Route path="/paypal-standalone" element={<PayPalTestStandalone />} />
+          <Route path="/paypal-improved" element={<PayPalImprovedTest />} />
+          <Route path="/paypal-tutorial" element={<PayPalTutorialWrapper />} />
+          <Route path="/env-test" element={<EnvTest />} />
+        </Routes>
+        
         <Header />
         
         <main>
           <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/order" element={<ProtectedRoute><OrderPage /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminPage /></ProtectedRoute>} />
+            <Route path="/order" element={<ProtectedRoute><SimpleOrderPage /></ProtectedRoute>} />
+            <Route path="/order-old" element={<ProtectedRoute><OrderPage /></ProtectedRoute>} />
+            <Route path="/payment" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute adminOnly={true}><ErrorBoundary><RealDataAdminPage /></ErrorBoundary></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute adminOnly={true}><AdminUsersPage /></ProtectedRoute>} />
+            <Route path="/admin-test" element={<SimpleAdminDebug />} />
+            <Route path="/test" element={<TestPage />} />
+            <Route path="/paypal-test" element={<PayPalTest />} />
+            <Route path="/payment-simple" element={<PaymentPageSimple />} />
             <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
             <Route path="/services" element={<ServicesPage />} />
             <Route path="/samples" element={<SamplesPage />} />
@@ -47,7 +76,8 @@ function App() {
             <Route path="/blog/:slug" element={<BlogPostPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignUpPage />} />
-            <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/update-password" element={<UpdatePasswordPage />} />
             <Route path="/thankyou" element={<ThankYouPage />} />

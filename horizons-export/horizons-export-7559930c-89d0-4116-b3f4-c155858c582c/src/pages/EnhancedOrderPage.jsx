@@ -30,7 +30,7 @@ import type {
   OrderFormData 
 } from '@/types/database';
 
-const PAYPAL_CLIENT_ID = "ASTKsEuvNVk9vlLXqUUMvTEB_mKYeYPk5YFZKwBI2f4h3oZf2orffsuqYd1udJKL4eweIVjikWB7tzlx";
+const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID;
 
 const EnhancedOrderPage = () => {
   const { toast } = useToast();

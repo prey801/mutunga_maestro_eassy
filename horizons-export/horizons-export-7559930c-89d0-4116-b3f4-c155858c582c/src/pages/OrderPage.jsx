@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
+import { PayPalScriptProvider, PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
 import { supabase } from '@/lib/customSupabaseClient';
-import { useAuth } from '@/contexts/EnhancedAuthContext';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { FileText, Paperclip, X, UploadCloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -13,12 +13,76 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 
-const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || "ASTKsEuvNVk9vlLXqUUMvTEB_mKYeYPk5YFZKwBI2f4h3oZf2orffsuqYd1udJKL4eweIVjikWB7tzlx";
+const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID;
+
+console.log('PayPal Client ID configured:', PAYPAL_CLIENT_ID ? 'Yes' : 'No');
+console.log('PayPal Client ID (first 10 chars):', PAYPAL_CLIENT_ID?.substring(0, 10) + '...');
+if (!PAYPAL_CLIENT_ID || PAYPAL_CLIENT_ID.length < 20) {
+  console.error('Invalid PayPal Client ID - Check .env.local file');
+  console.error('Expected: VITE_PAYPAL_CLIENT_ID=your_paypal_client_id');
+}
+
+// PayPal Button Wrapper Component
+const PayPalButtonWrapper = ({ price, createOrder, onApprove, onError, onCancel }) => {
+  const [{ isPending, isRejected }] = usePayPalScriptReducer();
+  
+  useEffect(() => {
+    console.log('PayPal Script Status:', { isPending, isRejected });
+  }, [isPending, isRejected]);
+  
+  if (isPending) {
+    return (
+      <div className="w-full p-4 text-center">
+        <p className="text-gray-600">Loading PayPal...</p>
+      </div>
+    );
+  }
+  
+  if (isRejected) {
+    return (
+      <div className="w-full p-4 border border-red-200 rounded-lg bg-red-50">
+        <h3 className="text-lg font-semibold text-red-800 mb-2">PayPal Unavailable</h3>
+        <p className="text-red-600 mb-4">PayPal is currently unavailable. Please contact us directly to complete your order.</p>
+        <div className="text-sm text-red-700">
+          <p><strong>Email:</strong> support@maestroessays.com</p>
+          <p><strong>Reference:</strong> Order total ${price}</p>
+          <p className="mt-2 text-xs">Include your order details when contacting us.</p>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <PayPalButtons
+      style={{ 
+        layout: 'vertical',
+        color: 'blue',
+        shape: 'rect',
+        label: 'pay',
+        height: 48,
+        tagline: false,
+      }}
+      createOrder={createOrder}
+      onApprove={onApprove}
+      onError={onError}
+      onCancel={onCancel}
+      forceReRender={[price]}
+    />
+  );
+};
 
 const OrderPage = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const fileInputRef = useRef(null);
+  
+  // Debug user authentication
+  useEffect(() => {
+    console.log('OrderPage - Current user:', user);
+    if (!user) {
+      console.warn('No user found, order placement will fail');
+    }
+  }, [user]);
   const [formData, setFormData] = useState({
     paperType: 'Essay',
     academicLevel: 'College',
@@ -62,13 +126,27 @@ const OrderPage = () => {
 
   useEffect(() => {
     const newPrice = calculatePrice();
+    console.log('Price calculated:', newPrice, 'for form data:', formData);
     setPrice(newPrice);
     setKey(prevKey => prevKey + 1); // Force re-render of PayPal button when price changes
   }, [formData, calculatePrice]);
 
   useEffect(() => {
-    setIsFormValid(formData.wordCount >= 275 && parseFloat(price) > 0);
-  }, [formData.wordCount, price]);
+    const isValid = (
+      formData.wordCount >= 275 && 
+      parseFloat(price) > 0 && 
+      user && 
+      formData.description.trim().length > 0
+    );
+    console.log('Form validation:', {
+      wordCount: formData.wordCount,
+      price: price,
+      user: !!user,
+      description: formData.description.trim().length,
+      isValid: isValid
+    });
+    setIsFormValid(isValid);
+  }, [formData.wordCount, formData.description, price, user]);
 
   const handleInputChange = (field, value) => {
     let newFormData = { ...formData, [field]: value };
@@ -129,29 +207,61 @@ const OrderPage = () => {
   };
 
   const createOrder = async (data, actions) => {
-    return actions.order.create({
-      purchase_units: [{
-        description: `Maestro Essays - ${formData.paperType}`,
-        amount: {
-          currency_code: 'USD',
-          value: price,
-        },
-        payee: {
-          email_address: "support@maestroessays.com"
+    console.log('Creating PayPal order with data:', { formData, price, user });
+    
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
+    if (!price || parseFloat(price) <= 0) {
+      throw new Error('Invalid price amount');
+    }
+    
+    try {
+      const priceValue = parseFloat(price).toFixed(2);
+      const orderData = {
+        intent: 'CAPTURE',
+        purchase_units: [{
+          reference_id: `maestro_${Date.now()}`,
+          description: `Maestro Essays - ${formData.paperType} (${formData.wordCount} words)`,
+          amount: {
+            currency_code: 'USD',
+            value: priceValue,
+          },
+          payee: {
+            email_address: "support@maestroessays.com"
+          }
+        }],
+        application_context: {
+          brand_name: 'Maestro Essays',
+          landing_page: 'NO_PREFERENCE',
+          user_action: 'PAY_NOW',
+          return_url: window.location.origin + '/profile',
+          cancel_url: window.location.origin + '/order',
         }
-      }],
-      application_context: {
-        brand_name: 'Maestro Essays',
-        return_url: 'https://maestroessays.com/thankyou',
-        cancel_url: 'https://maestroessays.com/order',
-      }
-    });
+      };
+      console.log('PayPal order data:', orderData);
+      return actions.order.create(orderData);
+    } catch (error) {
+      console.error('Error creating PayPal order:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Payment Error',
+        description: 'Unable to create payment order. Please try again.'
+      });
+      throw error;
+    }
   };
 
   const onApprove = async (data, actions) => {
+    console.log('PayPal payment approved, starting order processing...');
     try {
+      console.log('Capturing PayPal payment...');
       const paymentResult = await actions.order.capture();
+      console.log('PayPal payment captured successfully:', paymentResult);
+      
       const orderId = uuidv4();
+      console.log('Generated order ID:', orderId);
       
       // Calculate deadline
       const deadlineDate = new Date();
@@ -171,7 +281,7 @@ const OrderPage = () => {
       };
       
       // Create order with new schema
-      const { error: dbError } = await supabase.from('orders').insert([{
+      const orderRecord = {
         id: orderId,
         user_id: user.id,
         title: `${formData.paperType} - ${formData.academicLevel} Level`,
@@ -184,17 +294,27 @@ const OrderPage = () => {
         is_urgent: urgencyDays <= 2,
         price: parseFloat(price),
         status: 'pending'
-      }]);
+      };
       
-      if (dbError) throw dbError;
+      console.log('Creating database order record:', orderRecord);
+      const { error: dbError } = await supabase.from('orders').insert([orderRecord]);
+      
+      if (dbError) {
+        console.error('Database order insertion error:', dbError);
+        throw dbError;
+      }
+      console.log('Order record created successfully');
       
       // Upload files after order creation
       if (files.length > 0) {
+        console.log('Uploading files:', files.length);
         await uploadFiles(orderId);
+        console.log('Files uploaded successfully');
       }
       
       // Create payment transaction record
-      const { error: paymentError } = await supabase.from('payment_transactions').insert([{
+      console.log('Creating payment transaction record...');
+      const paymentTransactionData = {
         order_id: orderId,
         transaction_id: paymentResult.id,
         payment_method: 'paypal',
@@ -203,13 +323,16 @@ const OrderPage = () => {
         status: 'completed',
         gateway_response: paymentResult,
         processed_at: new Date().toISOString()
-      }]);
-
-      if (dbError) throw dbError;
+      };
+      
+      console.log('Payment transaction data:', paymentTransactionData);
+      const { error: paymentError } = await supabase.from('payment_transactions').insert([paymentTransactionData]);
       
       if (paymentError) {
         console.warn('Payment transaction record failed:', paymentError);
         // Don't throw error here as the order was created successfully
+      } else {
+        console.log('Payment transaction record created successfully');
       }
       
       toast({
@@ -217,9 +340,9 @@ const OrderPage = () => {
         description: "Your order has been placed successfully. You will receive a confirmation email shortly.",
       });
       
-      // Optional: Redirect to order confirmation or dashboard
+      // Redirect to profile page after successful order
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        window.location.href = '/profile';
       }, 3000);
       
     } catch (err) {
@@ -229,12 +352,60 @@ const OrderPage = () => {
   };
   
   const onError = (err) => {
-    toast({ variant: 'destructive', title: 'PayPal Error', description: 'An error occurred with your payment.' });
     console.error('PayPal Error:', err);
+    
+    let errorMessage = 'An error occurred with your payment.';
+    
+    if (err && err.message) {
+      errorMessage = err.message;
+    } else if (typeof err === 'string') {
+      errorMessage = err;
+    } else if (err && err.details && err.details.length > 0) {
+      errorMessage = err.details[0].description || errorMessage;
+    }
+    
+    toast({ 
+      variant: 'destructive', 
+      title: 'PayPal Error', 
+      description: errorMessage
+    });
   };
 
+  // Show error if PayPal is not configured
+  if (!PAYPAL_CLIENT_ID) {
+    return (
+      <div className="min-h-screen py-20">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="p-8 border border-red-200 rounded-lg bg-red-50">
+              <h3 className="text-lg font-semibold text-red-800 mb-4">PayPal Configuration Error</h3>
+              <p className="text-red-600 mb-4">PayPal Client ID is not configured. Please contact support to complete your order.</p>
+              <div className="text-sm text-red-700">
+                <p><strong>Email:</strong> support@maestroessays.com</p>
+                <p className="mt-2 text-xs">Technical Error: VITE_PAYPAL_CLIENT_ID missing from environment</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <PayPalScriptProvider options={{ "client-id": PAYPAL_CLIENT_ID, currency: "USD", intent: "capture" }}>
+    <PayPalScriptProvider 
+      options={{ 
+        "client-id": PAYPAL_CLIENT_ID, 
+        currency: "USD", 
+        intent: "capture",
+        "data-sdk-integration-source": "button-factory",
+        "disable-funding": "paylater,credit",
+        "debug": true,
+        "locale": "en_US"
+      }}
+      onError={(error) => {
+        console.error('PayPal Script Provider Error:', error);
+      }}
+    >
       <div className="min-h-screen py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -342,22 +513,30 @@ const OrderPage = () => {
               
               <div className="pt-4">
                 {isFormValid ? (
-                  <PayPalButtons
+                  <PayPalButtonWrapper
                     key={key}
-                    style={{ 
-                        layout: 'vertical',
-                        color: 'blue',
-                        shape: 'rect',
-                        label: 'pay',
-                        height: 48,
-                        tagline: false,
-                    }}
+                    price={price}
                     createOrder={createOrder}
                     onApprove={onApprove}
                     onError={onError}
+                    onCancel={(data) => {
+                      console.log('PayPal payment cancelled:', data);
+                      toast({ title: 'Payment Cancelled', description: 'You cancelled the payment process.' });
+                    }}
                   />
                 ) : (
-                  <Button disabled className="w-full" size="lg">Word count must be 275 or more</Button>
+                  <Button disabled className="w-full" size="lg">
+                    {!user 
+                      ? 'Please log in to place an order'
+                      : formData.wordCount < 275 
+                      ? 'Minimum 275 words required'
+                      : formData.description.trim().length === 0
+                      ? 'Please add order description'
+                      : parseFloat(price) <= 0
+                      ? 'Invalid price calculated'
+                      : 'Complete all required fields'
+                    }
+                  </Button>
                 )}
               </div>
             </CardContent>
