@@ -16,12 +16,9 @@ import SimpleAdminDebug from '@/pages/SimpleAdminDebug';
 import BasicAdminPage from '@/pages/BasicAdminPage';
 import RealDataAdminPage from '@/pages/RealDataAdminPage';
 import TestPage from '@/pages/TestPage';
-import PayPalTest from '@/components/PayPalTest';
 import PaymentPageSimple from '@/pages/PaymentPageSimple';
-import PayPalTestStandalone from '@/pages/PayPalTestStandalone';
 import EnvTest from '@/pages/EnvTest';
-import PayPalImprovedTest from '@/pages/PayPalImprovedTest';
-import PayPalTutorialWrapper from '@/pages/PayPalTutorialWrapper';
+import SupabaseTest from '@/pages/SupabaseTest';
 import ChatPage from '@/pages/ChatPage';
 import ServicesPage from '@/pages/ServicesPage';
 import SamplesPage from '@/pages/SamplesPage';
@@ -49,9 +46,7 @@ function App() {
         
         <Routes>
           {/* Standalone test routes without header/footer */}
-          <Route path="/paypal-standalone" element={<PayPalTestStandalone />} />
-          <Route path="/paypal-improved" element={<PayPalImprovedTest />} />
-          <Route path="/paypal-tutorial" element={<PayPalTutorialWrapper />} />
+          <Route path="/supabase-test" element={<SupabaseTest />} />
           <Route path="/env-test" element={<EnvTest />} />
         </Routes>
         
@@ -67,7 +62,6 @@ function App() {
             <Route path="/admin/users" element={<ProtectedRoute adminOnly={true}><AdminUsersPage /></ProtectedRoute>} />
             <Route path="/admin-test" element={<SimpleAdminDebug />} />
             <Route path="/test" element={<TestPage />} />
-            <Route path="/paypal-test" element={<PayPalTest />} />
             <Route path="/payment-simple" element={<PaymentPageSimple />} />
             <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
             <Route path="/services" element={<ServicesPage />} />

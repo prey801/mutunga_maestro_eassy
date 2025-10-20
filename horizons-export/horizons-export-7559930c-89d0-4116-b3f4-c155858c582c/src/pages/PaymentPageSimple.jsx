@@ -5,41 +5,22 @@ import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID;
 
-console.log('=== PaymentPageSimple Debug ===');
-console.log('PayPal Client ID:', PAYPAL_CLIENT_ID ? `${PAYPAL_CLIENT_ID.substring(0, 10)}...` : 'MISSING');
-console.log('Environment:', import.meta.env.MODE);
-console.log('Full env object:', import.meta.env);
-
 const SimplePayPalButtons = ({ amount = "25.00", onSuccess, onError }) => {
   const [{ isPending, isResolved, isRejected }] = usePayPalScriptReducer();
   const [startTime] = useState(Date.now());
 
+  // Monitor loading time
   useEffect(() => {
-    const elapsed = (Date.now() - startTime) / 1000;
-    console.log(`PayPal Status Update: ${elapsed.toFixed(1)}s`, {
-      isPending,
-      isResolved,
-      isRejected
-    });
-    
-    if (isPending && elapsed > 20) {
-      console.error('PayPal has been loading for over 20 seconds - this is abnormal');
+    if (isPending && (Date.now() - startTime) > 20000) {
+      console.warn('PayPal taking longer than expected to load');
     }
-  }, [isPending, isResolved, isRejected, startTime]);
+  }, [isPending, startTime]);
 
   if (isPending) {
-    const elapsed = Math.floor((Date.now() - startTime) / 1000);
     return (
       <div className="text-center py-8">
         <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-blue-600" />
         <p className="text-lg font-medium">Loading PayPal...</p>
-        <p className="text-sm text-gray-500 mt-2">Time: {elapsed}s</p>
-        {elapsed > 10 && (
-          <p className="text-sm text-orange-600 mt-2">⚠️ Taking longer than usual...</p>
-        )}
-        {elapsed > 20 && (
-          <p className="text-sm text-red-600 mt-2">❌ This is taking too long</p>
-        )}
       </div>
     );
   }
@@ -74,8 +55,17 @@ const SimplePayPalButtons = ({ amount = "25.00", onSuccess, onError }) => {
             label: 'pay',
             height: 48,
           }}
+          onClick={(data, actions) => {
+            // Check for popup blockers
+            const testPopup = window.open('', '_blank', 'width=1,height=1');
+            if (!testPopup || testPopup.closed || typeof testPopup.closed === 'undefined') {
+              alert('Please disable popup blockers and try again.');
+              return actions.reject();
+            }
+            testPopup.close();
+            return actions.resolve();
+          }}
           createOrder={(data, actions) => {
-            console.log('Creating PayPal order for amount:', amount);
             return actions.order.create({
               intent: 'CAPTURE',
               purchase_units: [{
@@ -85,25 +75,25 @@ const SimplePayPalButtons = ({ amount = "25.00", onSuccess, onError }) => {
                   value: amount,
                 }
               }],
+              application_context: {
+                shipping_preference: 'NO_SHIPPING',
+                user_action: 'PAY_NOW'
+              }
             });
           }}
           onApprove={async (data, actions) => {
-            console.log('PayPal payment approved:', data);
             try {
               const details = await actions.order.capture();
-              console.log('PayPal payment captured:', details);
               onSuccess && onSuccess(details);
             } catch (error) {
-              console.error('PayPal capture error:', error);
               onError && onError(error);
             }
           }}
           onError={(error) => {
-            console.error('PayPal error:', error);
             onError && onError(error);
           }}
           onCancel={() => {
-            console.log('PayPal payment cancelled');
+            // Payment was cancelled
           }}
         />
       </div>
@@ -122,15 +112,13 @@ const PaymentPageSimple = () => {
   const [paymentStatus, setPaymentStatus] = useState('pending');
 
   const handlePaymentSuccess = (details) => {
-    console.log('Payment successful:', details);
     setPaymentStatus('success');
-    alert('Payment successful! Transaction ID: ' + details.id);
+    // Handle successful payment here - e.g., redirect, update database, etc.
   };
 
   const handlePaymentError = (error) => {
-    console.error('Payment error:', error);
     setPaymentStatus('error');
-    alert('Payment failed: ' + error.message);
+    // Handle payment error here
   };
 
   if (!PAYPAL_CLIENT_ID) {
@@ -188,7 +176,9 @@ const PaymentPageSimple = () => {
                 'client-id': PAYPAL_CLIENT_ID,
                 currency: 'USD',
                 intent: 'capture',
-                debug: true
+                debug: false, // Disable debug to prevent loading delays
+                'disable-funding': 'credit,card', // Reduce complexity
+                'enable-funding': 'paypal'
               }}
             >
               <SimplePayPalButtons

@@ -79,6 +79,9 @@ const EnvTest = () => {
             <a href="/paypal-tutorial" style={{ color: '#1976d2', textDecoration: 'none', fontWeight: 'bold' }}>
               📚 PayPal Tutorial Test (Official Structure) ⭐ RECOMMENDED
             </a>
+            <a href="/paypal-diagnostic" style={{ color: '#dc2626', textDecoration: 'none', fontWeight: 'bold' }}>
+              🔧 PayPal Diagnostic Tool (Issue Detection & Troubleshooting) ⭐ NEW
+            </a>
             <a href="/paypal-improved" style={{ color: '#1976d2', textDecoration: 'none' }}>
               🚀 PayPal Improved Test (Enhanced Features)
             </a>

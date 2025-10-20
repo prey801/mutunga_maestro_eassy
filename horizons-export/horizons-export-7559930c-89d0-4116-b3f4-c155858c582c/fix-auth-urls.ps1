@@ -32,7 +32,7 @@ Write-Host ""
 $openDashboard = Read-Host "Open Supabase Dashboard now? (y/n)"
 if ($openDashboard -eq "y" -or $openDashboard -eq "Y") {
     Write-Host "🌐 Opening Supabase Authentication Settings..." -ForegroundColor Green
-    Start-Process "https://app.supabase.com/project/pcexiuwtmhqdpyhaxfwm/auth/url-configuration"
+    Start-Process "https://app.supabase.com/project/iojsrywtrvemxlqvvgff/auth/url-configuration"
     Start-Sleep 2
     
     Write-Host ""

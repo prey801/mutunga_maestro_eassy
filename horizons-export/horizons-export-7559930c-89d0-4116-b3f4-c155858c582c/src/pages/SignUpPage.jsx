@@ -21,18 +21,77 @@ const SignUpPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    const { data, error } = await signUp(email, password, { 
-        data: { full_name: fullName } 
-    });
-    if (!error && data.user) {
+    
+    // Input validation
+    if (!email || !password || !fullName) {
       toast({
-        title: "Account Created!",
-        description: "Please check your email to confirm your account.",
+        variant: "destructive",
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
       });
-      navigate('/login');
+      return;
     }
-    setLoading(false);
+    
+    if (password.length < 6) {
+      toast({
+        variant: "destructive",
+        title: "Password Too Short",
+        description: "Password must be at least 6 characters long.",
+      });
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      console.log('Attempting sign up with:', { email, fullName });
+      
+      const { data, error } = await signUp(email, password, { 
+        data: { full_name: fullName } 
+      });
+      
+      console.log('Sign up response:', { data, error });
+      
+      if (error) {
+        console.error('Sign up error:', error);
+        toast({
+          variant: "destructive",
+          title: "Sign Up Failed",
+          description: error.message || "Something went wrong during sign up.",
+        });
+      } else if (data.user) {
+        toast({
+          title: "Account Created!",
+          description: "Please check your email to confirm your account.",
+        });
+        
+        // Clear form
+        setEmail('');
+        setPassword('');
+        setFullName('');
+        
+        // Navigate after a short delay to show the toast
+        setTimeout(() => {
+          navigate('/login');
+        }, 1500);
+      } else {
+        console.warn('Unexpected sign up response:', { data, error });
+        toast({
+          variant: "destructive", 
+          title: "Sign Up Issue",
+          description: "Account creation may have failed. Please try again.",
+        });
+      }
+    } catch (err) {
+      console.error('Sign up exception:', err);
+      toast({
+        variant: "destructive",
+        title: "Network Error", 
+        description: "Unable to create account. Please check your internet connection.",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

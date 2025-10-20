@@ -46,7 +46,7 @@ Write-Host "NEXT STEPS TO COMPLETE THE FIX:" -ForegroundColor Cyan
 
 Write-Host ""
 Write-Host "1. DEPLOY THE DATABASE SCHEMA" -ForegroundColor Yellow
-Write-Host "   - Open: https://app.supabase.com/project/pcexiuwtmhqdpyhaxfwm" -ForegroundColor Gray
+Write-Host "   - Open: https://app.supabase.com/project/iojsrywtrvemxlqvvgff" -ForegroundColor Gray
 Write-Host "   - Go to SQL Editor" -ForegroundColor Gray
 Write-Host "   - Run the contents of: database/enhanced_schema_v2.sql" -ForegroundColor Gray
 
@@ -88,12 +88,12 @@ $choice = Read-Host "Enter your choice (1-6)"
 switch ($choice) {
     "1" {
         Write-Host "[ACTION] Opening Supabase SQL Editor..." -ForegroundColor Green
-        Start-Process "https://app.supabase.com/project/pcexiuwtmhqdpyhaxfwm/sql/new"
+        Start-Process "https://app.supabase.com/project/iojsrywtrvemxlqvvgff/sql/new"
         Write-Host "Copy and run the contents of: database/enhanced_schema_v2.sql" -ForegroundColor Yellow
     }
     "2" {
         Write-Host "[ACTION] Opening Supabase Storage..." -ForegroundColor Green
-        Start-Process "https://app.supabase.com/project/pcexiuwtmhqdpyhaxfwm/storage/buckets"
+        Start-Process "https://app.supabase.com/project/iojsrywtrvemxlqvvgff/storage/buckets"
         Write-Host "Create a new bucket named 'order_attachments'" -ForegroundColor Yellow
     }
     "3" {
@@ -131,11 +131,11 @@ switch ($choice) {
         Write-Host "[ACTION] Opening all necessary resources..." -ForegroundColor Green
         
         # Open Supabase SQL Editor
-        Start-Process "https://app.supabase.com/project/pcexiuwtmhqdpyhaxfwm/sql/new"
+        Start-Process "https://app.supabase.com/project/iojsrywtrvemxlqvvgff/sql/new"
         Start-Sleep 2
         
         # Open Supabase Storage
-        Start-Process "https://app.supabase.com/project/pcexiuwtmhqdpyhaxfwm/storage/buckets"
+        Start-Process "https://app.supabase.com/project/iojsrywtrvemxlqvvgff/storage/buckets"
         Start-Sleep 2
         
         # Build the project

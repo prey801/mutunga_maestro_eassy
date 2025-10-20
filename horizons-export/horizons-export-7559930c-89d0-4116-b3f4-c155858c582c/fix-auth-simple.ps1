@@ -45,7 +45,7 @@ $choice = Read-Host "Enter your choice (1-5)"
 switch ($choice) {
     "1" {
         Write-Host "[ACTION] Opening Supabase Authentication Settings..." -ForegroundColor Green
-        Start-Process "https://app.supabase.com/project/pcexiuwtmhqdpyhaxfwm/auth/url-configuration"
+        Start-Process "https://app.supabase.com/project/iojsrywtrvemxlqvvgff/auth/url-configuration"
         Write-Host ""
         Write-Host "UPDATE THESE SETTINGS:" -ForegroundColor Yellow
         Write-Host ""
@@ -91,7 +91,7 @@ switch ($choice) {
         
         $openDashboard = Read-Host "Open Supabase dashboard now? (y/n)"
         if ($openDashboard -eq "y" -or $openDashboard -eq "Y") {
-            Start-Process "https://app.supabase.com/project/pcexiuwtmhqdpyhaxfwm/auth/url-configuration"
+            Start-Process "https://app.supabase.com/project/iojsrywtrvemxlqvvgff/auth/url-configuration"
         }
     }
     default {

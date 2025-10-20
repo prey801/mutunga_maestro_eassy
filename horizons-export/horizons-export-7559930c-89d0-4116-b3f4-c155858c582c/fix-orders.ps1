@@ -19,12 +19,12 @@ Write-Host "REQUIRED SETUP STEPS:" -ForegroundColor Cyan
 Write-Host ""
 
 Write-Host "1. Deploy Database Schema" -ForegroundColor Yellow
-Write-Host "   Open: https://app.supabase.com/project/pcexiuwtmhqdpyhaxfwm/sql/new" -ForegroundColor Gray
+Write-Host "   Open: https://app.supabase.com/project/iojsrywtrvemxlqvvgff/sql/new" -ForegroundColor Gray
 Write-Host "   Copy and paste contents of: database/enhanced_schema_v2.sql" -ForegroundColor Gray
 Write-Host ""
 
 Write-Host "2. Create Storage Bucket" -ForegroundColor Yellow  
-Write-Host "   Open: https://app.supabase.com/project/pcexiuwtmhqdpyhaxfwm/storage/buckets" -ForegroundColor Gray
+Write-Host "   Open: https://app.supabase.com/project/iojsrywtrvemxlqvvgff/storage/buckets" -ForegroundColor Gray
 Write-Host "   Create bucket named: order_attachments" -ForegroundColor Gray
 Write-Host "   Set as public bucket" -ForegroundColor Gray
 Write-Host ""
@@ -37,7 +37,7 @@ Write-Host ""
 $choice = Read-Host "Open Supabase Dashboard? (y/n)"
 if ($choice -eq "y" -or $choice -eq "Y") {
     Write-Host "Opening Supabase..." -ForegroundColor Green
-    Start-Process "https://app.supabase.com/project/pcexiuwtmhqdpyhaxfwm"
+    Start-Process "https://app.supabase.com/project/iojsrywtrvemxlqvvgff"
 }
 
 Write-Host ""
